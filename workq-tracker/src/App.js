@@ -485,7 +485,7 @@ const WorkTimeCalculator = () => {
 
         {/* Calendar Section */}
         <div className="xl:col-span-2">
-          <div className="bg-white rounded-xl shadow-xl p-4 sm:p-6 border border-gray-200">
+          <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
               <h1 className="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-2">
                 <Calendar className="text-blue-600" size={24} />
@@ -493,39 +493,39 @@ const WorkTimeCalculator = () => {
               </h1>
               <button
                 onClick={() => setShowSalarySettings(true)}
-                className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl hover:from-green-600 hover:to-green-700 flex items-center gap-2 text-sm sm:text-base w-full sm:w-auto justify-center shadow-lg transition-all duration-200"
+                className="bg-green-600 text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm sm:text-base w-full sm:w-auto justify-center shadow-md transition-all duration-200"
               >
                 <DollarSign size={18} />
                 Salary Settings
               </button>
             </div>
 
-            <div className="flex items-center justify-between mb-6 bg-gray-50 p-4 rounded-xl">
+            <div className="flex items-center justify-between mb-6">
               <button
                 onClick={() => setCurrentDate(new Date(currentYear, currentMonth - 1, 1))}
-                className="px-4 py-2 sm:px-5 sm:py-2.5 bg-white border border-gray-300 rounded-xl hover:bg-blue-50 hover:border-blue-300 text-sm sm:text-base font-medium transition-all duration-200 shadow-sm"
+                className="px-4 py-2 sm:px-5 sm:py-2.5 bg-gray-200 rounded-lg hover:bg-gray-300 text-sm sm:text-base font-medium transition-all duration-200"
               >
                 <span className="hidden sm:inline">← Previous</span>
                 <span className="sm:hidden">← Prev</span>
               </button>
-              <h2 className="text-lg sm:text-xl font-bold text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <h2 className="text-lg sm:text-xl font-semibold text-center">
                 <span className="block sm:inline">{monthNames[currentMonth]}</span>
                 <span className="block sm:inline sm:ml-2">{currentYear}</span>
               </h2>
               <button
                 onClick={() => setCurrentDate(new Date(currentYear, currentMonth + 1, 1))}
-                className="px-4 py-2 sm:px-5 sm:py-2.5 bg-white border border-gray-300 rounded-xl hover:bg-blue-50 hover:border-blue-300 text-sm sm:text-base font-medium transition-all duration-200 shadow-sm"
+                className="px-4 py-2 sm:px-5 sm:py-2.5 bg-gray-200 rounded-lg hover:bg-gray-300 text-sm sm:text-base font-medium transition-all duration-200"
               >
                 <span className="hidden sm:inline">Next →</span>
                 <span className="sm:hidden">Next →</span>
               </button>
             </div>
 
-            <div className="bg-white border rounded-xl overflow-hidden shadow-sm">
+            <div className="bg-white border rounded-lg overflow-hidden">
               {/* Calendar Header */}
-              <div className="grid grid-cols-7 bg-gradient-to-r from-blue-500 to-blue-600">
+              <div className="grid grid-cols-7 bg-gray-100">
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
-                  <div key={day} className="p-3 sm:p-4 text-center font-semibold text-white text-xs sm:text-sm">
+                  <div key={day} className="p-3 sm:p-4 text-center font-semibold text-gray-700 text-xs sm:text-sm">
                     <span className="hidden sm:inline">{day}</span>
                     <span className="sm:hidden">{day.charAt(0)}</span>
                   </div>
@@ -533,7 +533,7 @@ const WorkTimeCalculator = () => {
               </div>
 
               {/* Calendar Grid */}
-              <div className="grid grid-cols-7 gap-0">
+              <div className="grid grid-cols-7">
                 {days.map((day, index) => {
                   const dateStr = formatDate(day);
                   const workRecord = workRecords[dateStr];
@@ -544,118 +544,83 @@ const WorkTimeCalculator = () => {
                     <div
                       key={index}
                       onClick={() => handleDateClick(day)}
-                      className={`min-h-[90px] sm:min-h-[130px] p-2 sm:p-3 border-r border-b border-gray-100 relative transition-all duration-200 ${
-                        day ? 'hover:bg-blue-50 cursor-pointer' : 'bg-gray-50'
-                      } ${isLeave ? 'bg-red-50 border-red-200' : ''} ${isToday ? 'bg-yellow-50 border-yellow-300' : ''}`}
+                      className={`min-h-[100px] sm:min-h-[130px] p-2 sm:p-3 border-r border-b relative transition-all duration-200 ${
+                        day ? 'hover:bg-gray-50 cursor-pointer' : 'bg-gray-50'
+                      } ${isLeave ? 'bg-red-50' : ''} ${isToday ? 'bg-yellow-50' : ''}`}
                     >
                       {day && (
                         <>
                           {/* Date Number */}
-                          <div className={`font-bold mb-2 text-sm sm:text-base ${
-                            isToday ? 'text-yellow-700 bg-yellow-200 w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-xs sm:text-sm' : 
-                            workRecord ? 'text-blue-700' : 
+                          <div className={`font-bold mb-2 text-base sm:text-lg ${
+                            isToday ? 'text-blue-600 bg-blue-100 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-sm sm:text-base' : 
+                            workRecord ? 'text-green-700' : 
                             isLeave ? 'text-red-700' : 'text-gray-700'
                           }`}>
                             {day}
                           </div>
                           
-                          {/* Work Record - Mobile Optimized */}
+                          {/* Mobile: Simple Status Indicators */}
+                          <div className="space-y-1">
+                            {workRecord && (
+                              <div className="text-center">
+                                <div className="bg-green-500 text-white px-2 py-1 rounded text-xs font-medium mb-1">
+                                  {workRecord.workingHours.toFixed(1)}h
+                                </div>
+                                <div className="text-xs text-green-700 font-semibold hidden sm:block">
+                                  {formatCurrency(workRecord.workingHours * salaryPerHour)}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {isLeave && (
+                              <div className="text-center">
+                                <div className="bg-red-500 text-white px-2 py-1 rounded text-xs font-medium">
+                                  Leave
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Action Buttons - Only on Desktop */}
                           {workRecord && (
-                            <div className="space-y-1">
-                              {/* Mobile: Condensed View */}
-                              <div className="sm:hidden">
-                                <div className="bg-gradient-to-r from-green-400 to-green-500 text-white px-2 py-1 rounded-lg text-xs font-medium">
-                                  ✓ {workRecord.workingHours.toFixed(1)}h
-                                </div>
-                                <div className="text-xs text-green-700 font-semibold mt-1">
-                                  {formatCurrency(workRecord.workingHours * salaryPerHour)}
-                                </div>
-                              </div>
-                              
-                              {/* Desktop: Detailed View */}
-                              <div className="hidden sm:block space-y-1">
-                                <div className="flex items-center gap-1 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-md">
-                                  <LogIn size={10} />
-                                  {formatTimeDisplay(workRecord.inTime)}
-                                </div>
-                                <div className="flex items-center gap-1 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-md">
-                                  <LogOut size={10} />
-                                  {formatTimeDisplay(workRecord.outTime)}
-                                </div>
-                                <div className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-md flex items-center gap-1">
-                                  <Coffee size={10} />
-                                  {workRecord.breakTime}m
-                                </div>
-                                <div className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-md font-medium">
-                                  {workRecord.workingHours.toFixed(1)} hours
-                                </div>
-                                <div className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-md font-semibold">
-                                  {formatCurrency(workRecord.workingHours * salaryPerHour)}
-                                </div>
-                              </div>
-                              
-                              {/* Action Buttons */}
-                              <div className="flex gap-1 mt-2 justify-end">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    editWorkRecord(dateStr);
-                                  }}
-                                  className="p-1.5 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-                                  title="Edit"
-                                >
-                                  <Clock size={12} />
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    deleteWorkRecord(dateStr);
-                                  }}
-                                  className="p-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
-                                  title="Delete"
-                                >
-                                  <Trash2 size={12} />
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* Leave Status */}
-                          {isLeave && (
-                            <div className="flex items-center gap-1 text-xs bg-red-400 text-white px-2 py-1 rounded-lg font-medium">
-                              <Coffee size={10} />
-                              Leave
-                            </div>
-                          )}
-                          
-                          {/* Add Leave Button */}
-                          {!workRecord && !isLeave && (
-                            <div className="absolute bottom-2 right-2">
+                            <div className="hidden sm:flex gap-1 mt-2 justify-end absolute bottom-2 right-2">
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleLeaveToggle(dateStr);
+                                  editWorkRecord(dateStr);
                                 }}
-                                className="p-1.5 bg-gray-300 text-gray-600 rounded-md hover:bg-red-400 hover:text-white transition-all duration-200"
-                                title="Mark Leave"
+                                className="p-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                                title="Edit"
                               >
-                                <Coffee size={12} />
+                                <Clock size={10} />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteWorkRecord(dateStr);
+                                }}
+                                className="p-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                                title="Delete"
+                              >
+                                <Trash2 size={10} />
                               </button>
                             </div>
                           )}
                           
-                          {/* Remove Leave Button */}
-                          {isLeave && (
-                            <div className="absolute bottom-2 right-2">
+                          {/* Leave Toggle - Only on Desktop */}
+                          {!workRecord && (
+                            <div className="hidden sm:block absolute bottom-2 right-2">
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleLeaveToggle(dateStr);
                                 }}
-                                className="p-1.5 bg-red-400 text-white rounded-md hover:bg-gray-300 hover:text-gray-600 transition-all duration-200"
-                                title="Remove Leave"
+                                className={`p-1 rounded text-xs transition-all duration-200 ${
+                                  isLeave ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-gray-300 text-gray-600 hover:bg-gray-400'
+                                }`}
+                                title={isLeave ? "Remove Leave" : "Mark Leave"}
                               >
-                                <X size={12} />
+                                <Coffee size={10} />
                               </button>
                             </div>
                           )}
