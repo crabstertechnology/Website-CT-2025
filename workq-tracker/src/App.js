@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, DollarSign, Coffee, Trash2, Save, X, LogIn, LogOut, Minus } from 'lucide-react';
+import { Calendar, Clock, DollarSign, Coffee, Trash2, Save, X, LogIn, LogOut, Minus, ArrowLeft } from 'lucide-react';
 
 const WorkTimeCalculator = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -330,6 +330,17 @@ const WorkTimeCalculator = () => {
 
   return (
     <div className="max-w-7xl mx-auto p-3 sm:p-6 bg-gray-50 min-h-screen">
+      {/* Header with Return Button */}
+      <div className="mb-4 sm:mb-6">
+        <button
+          onClick={() => window.location.href = '../'}
+          className="flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium transition-colors duration-200 mb-4"
+        >
+          <ArrowLeft size={20} />
+          <span className="text-sm sm:text-base">Return to CrabsterTech</span>
+        </button>
+      </div>
+
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
         
         {/* Time Entry Section */}
