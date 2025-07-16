@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WorkQ - Time Tracking & Salary Calculator</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+                sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { Calendar, Clock, DollarSign, Coffee, Trash2, Save, X, LogIn, LogOut, Minus } = lucide;
+
+        const WorkTimeCalculator = () => {
+            const [currentDate, setCurrentDate] = useState(new Date());
+            const [workRecords, setWorkRecords] = useState({});
+            const [leaveRecords, setLeaveRecords] = useState({});
+            const [salaryPerHour, setSalaryPerHour] = useState(500);
+            const [showSalarySettings, setShowSalarySettings] = useState(false);
+            
+            const [timeEntry, setTimeEntry] = useState({
+                selectedDate: '',
+                inTime: { hour: '09', minute: '00', period: 'AM' },
+                outTime: { hour: '05', minute: '00', period: 'PM' },
+                breakTime: 60
+            });
+
+            useEffect(() => {
+                const now = new Date();
+                const currentDateStr = now.toISOString().split('T')[0];
+                const currentTimeObj = getCurrentTimeObject();
+                
+                setTimeEntry(prev => ({
+                    ...prev,
+                    selectedDate: currentDateStr,
+                    inTime: currentTimeObj
+                }));
+            }, []);
+
+            const timeObjectTo24Hour = (timeObj) => {
+                if (!timeObj.hour || !timeObj.minute) return '';
+                let hour = parseInt(timeObj.hour);
+                if (timeObj.period === 'PM' && hour !== 12) hour += 12;
+                if (timeObj.period === 'AM' && hour === 12) hour = 0;
+                return `${hour.toString().padStart(2, '0')}:${timeObj.minute}`;
+            };
+
+            const time24HourToObject = (time24) => {
+                if (!time24) return { hour: '09', minute: '00', period: 'AM' };
+                const [hours, minutes] = time24.split(':');
+                const hour = parseInt(hours);
+                const period = hour >= 12 ? 'PM' : 'AM';
+                const hour12 = hour % 12 || 12;
+                return {
+                    hour: hour12.toString().padStart(2, '0'),
+                    minute: minutes,
+                    period: period
+                };
+            };
+
+            const formatTimeDisplay = (timeObj) => {
+                if (!timeObj.hour || !timeObj.minute) return '';
+                return `${timeObj.hour}:${timeObj.minute} ${timeObj.period}`;
+            };
+
+            const getCurrentTimeObject = () => {
+                const now = new Date();
+                const hours = now.getHours();
+                const minutes = now.getMinutes();
+                const period = hours >= 12 ? 'PM' : 'AM';
+                const hour12 = hours % 12 || 12;
+                return {
+                    hour: hour12.toString().padStart(2, '0'),
+                    minute: minutes.toString().padStart(2, '0'),
+                    period: period
+                };
+            };
+
+            const getCurrentTimeDisplay = () => {
+                const timeObj = getCurrentTimeObject();
+                return formatTimeDisplay(timeObj);
+            };
+
+            const handleInTimeEntry = () => {
+                const currentTimeObj = getCurrentTimeObject();
+                setTimeEntry(prev => ({
+                    ...prev,
+                    inTime: currentTimeObj
+                }));
+            };
+
+            const handleOutTimeEntry = () => {
+                const currentTimeObj = getCurrentTimeObject();
+                setTimeEntry(prev => ({
+                    ...prev,
+                    outTime: currentTimeObj
+                }));
+            };
+
+            const formatCurrency = (amount) => {
+                const rupees = Math.floor(amount);
+                const paise = Math.round((amount - rupees) * 100);
+                if (paise === 0) {
+                    return `₹${rupees.toLocaleString('en-IN')}`;
+                }
+                return `₹${rupees.toLocaleString('en-IN')}.${paise.toString().padStart(2, '0')}`;
+            };
+
+            const currentMonth = currentDate.getMonth();
+            const currentYear = currentDate.getFullYear();
+
+            const getDaysInMonth = (month, year) => {
+                const firstDay = new Date(year, month, 1);
+                const lastDay = new Date(year, month + 1, 0);
+                const daysInMonth = lastDay.getDate();
+                const startingDayOfWeek = firstDay.getDay();
+                
+                const days = [];
+                
+                for (let i = 0; i < startingDayOfWeek; i++) {
+                    days.push(null);
+                }
+                
+                for (let day = 1; day <= daysInMonth; day++) {
+                    days.push(day);
+                }
+                
+                return days;
+            };
+
+            const formatDate = (day) => {
+                if (!day) return '';
+                return `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            };
+
+            const calculateWorkingHours = (inTimeObj, outTimeObj, breakMinutes = 60) => {
+                const inTime24 = timeObjectTo24Hour(inTimeObj);
+                const outTime24 = timeObjectTo24Hour(outTimeObj);
+                
+                if (!inTime24 || !outTime24) return 0;
+                
+                const inDate = new Date(`2000-01-01T${inTime24}`);
+                const outDate = new Date(`2000-01-01T${outTime24}`);
+                
+                if (outDate < inDate) {
+                    outDate.setDate(outDate.getDate() + 1);
+                }
+                
+                const diffMs = outDate - inDate;
+                const diffHours = diffMs / (1000 * 60 * 60);
+                const breakHours = breakMinutes / 60;
+                
+                return Math.max(0, diffHours - breakHours);
+            };
+
+            const handleTimeSubmit = () => {
+                if (!timeEntry.selectedDate || !timeEntry.inTime.hour || !timeEntry.outTime.hour) {
+                    alert('Please fill in all required fields (Date, In Time, Out Time)');
+                    return;
+                }
+                
+                const workingHours = calculateWorkingHours(timeEntry.inTime, timeEntry.outTime, timeEntry.breakTime);
+                
+                setWorkRecords(prev => ({
+                    ...prev,
+                    [timeEntry.selectedDate]: {
+                        inTime: timeEntry.inTime,
+                        outTime: timeEntry.outTime,
+                        breakTime: timeEntry.breakTime,
+                        workingHours: workingHours
+                    }
+                }));
+                
+                setTimeEntry(prev => ({
+                    ...prev,
+                    inTime: getCurrentTimeObject(),
+                    outTime: { hour: '05', minute: '00', period: 'PM' },
+                    breakTime: 60
+                }));
+                
+                alert('Work time added successfully!');
+            };
+
+            const handleLeaveToggle = (dateStr) => {
+                setLeaveRecords(prev => ({
+                    ...prev,
+                    [dateStr]: !prev[dateStr]
+                }));
+            };
+
+            const deleteWorkRecord = (dateStr) => {
+                setWorkRecords(prev => {
+                    const newRecords = { ...prev };
+                    delete newRecords[dateStr];
+                    return newRecords;
+                });
+            };
+
+            const editWorkRecord = (dateStr) => {
+                const record = workRecords[dateStr];
+                if (record) {
+                    setTimeEntry({
+                        selectedDate: dateStr,
+                        inTime: record.inTime,
+                        outTime: record.outTime,
+                        breakTime: record.breakTime
+                    });
+                }
+            };
+
+            const getTotalHours = () => {
+                return Object.values(workRecords).reduce((total, record) => total + record.workingHours, 0);
+            };
+
+            const getTotalSalary = () => {
+                return getTotalHours() * salaryPerHour;
+            };
+
+            const getWorkingDays = () => {
+                return Object.keys(workRecords).length;
+            };
+
+            const getLeaveDays = () => {
+                return Object.values(leaveRecords).filter(Boolean).length;
+            };
+
+            const monthNames = [
+                'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'
+            ];
+
+            const days = getDaysInMonth(currentMonth, currentYear);
+
+            const TimeInput = ({ label, timeObj, onChange, buttonLabel, buttonIcon, buttonColor, onButtonClick }) => (
+                React.createElement('div', {},
+                    React.createElement('label', { className: "block text-sm font-medium mb-1 text-gray-700" }, label),
+                    React.createElement('div', { className: "flex gap-2" },
+                        React.createElement('div', { className: "flex-1 flex gap-1" },
+                            React.createElement('select', {
+                                value: timeObj.hour,
+                                onChange: (e) => onChange({ ...timeObj, hour: e.target.value }),
+                                className: "p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            },
+                                [...Array(12)].map((_, i) => {
+                                    const hour = (i + 1).toString().padStart(2, '0');
+                                    return React.createElement('option', { key: hour, value: hour }, hour);
+                                })
+                            ),
+                            React.createElement('span', { className: "p-3 text-gray-500 font-bold" }, ':'),
+                            React.createElement('select', {
+                                value: timeObj.minute,
+                                onChange: (e) => onChange({ ...timeObj, minute: e.target.value }),
+                                className: "p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            },
+                                [...Array(60)].map((_, i) => {
+                                    const minute = i.toString().padStart(2, '0');
+                                    return React.createElement('option', { key: minute, value: minute }, minute);
+                                })
+                            ),
+                            React.createElement('select', {
+                                value: timeObj.period,
+                                onChange: (e) => onChange({ ...timeObj, period: e.target.value }),
+                                className: "p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            },
+                                React.createElement('option', { value: "AM" }, 'AM'),
+                                React.createElement('option', { value: "PM" }, 'PM')
+                            )
+                        ),
+                        React.createElement('button', {
+                            onClick: onButtonClick,
+                            className: `${buttonColor} text-white px-4 py-2 rounded-lg hover:opacity-90 flex items-center gap-2 whitespace-nowrap`,
+                            title: "Use current time"
+                        },
+                            React.createElement(buttonIcon, { size: 18 }),
+                            buttonLabel
+                        )
+                    )
+                )
+            );
+
+            return React.createElement('div', { className: "max-w-7xl mx-auto p-6 bg-gray-50 min-h-screen" },
+                React.createElement('div', { className: "grid grid-cols-1 lg:grid-cols-3 gap-6" },
+                    // Time Entry Section
+                    React.createElement('div', { className: "lg:col-span-1" },
+                        React.createElement('div', { className: "bg-white rounded-lg shadow-lg p-6 mb-6" },
+                            React.createElement('div', { className: "text-center mb-6" },
+                                React.createElement('h1', { className: "text-4xl font-bold text-gray-800 mb-2" }, 'WorkQ'),
+                                React.createElement('p', { className: "text-gray-600" }, 'Smart Time Tracking & Salary Calculator')
+                            ),
+                            React.createElement('h2', { className: "text-xl font-bold text-gray-800 flex items-center gap-2 mb-4" },
+                                React.createElement(Clock, { className: "text-blue-600" }),
+                                'Time Entry'
+                            ),
+                            React.createElement('div', { className: "space-y-4" },
+                                React.createElement('div', {},
+                                    React.createElement('label', { className: "block text-sm font-medium mb-1 text-gray-700" }, 'Date'),
+                                    React.createElement('input', {
+                                        type: "date",
+                                        value: timeEntry.selectedDate,
+                                        onChange: (e) => setTimeEntry(prev => ({ ...prev, selectedDate: e.target.value })),
+                                        className: "w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    })
+                                ),
+                                React.createElement(TimeInput, {
+                                    label: "In Time",
+                                    timeObj: timeEntry.inTime,
+                                    onChange: (newTime) => setTimeEntry(prev => ({ ...prev, inTime: newTime })),
+                                    buttonLabel: "In Now",
+                                    buttonIcon: LogIn,
+                                    buttonColor: "bg-green-600 hover:bg-green-700",
+                                    onButtonClick: handleInTimeEntry
+                                }),
+                                React.createElement(TimeInput, {
+                                    label: "Out Time",
+                                    timeObj: timeEntry.outTime,
+                                    onChange: (newTime) => setTimeEntry(prev => ({ ...prev, outTime: newTime })),
+                                    buttonLabel: "Out Now",
+                                    buttonIcon: LogOut,
+                                    buttonColor: "bg-red-600 hover:bg-red-700",
+                                    onButtonClick: handleOutTimeEntry
+                                }),
+                                React.createElement('div', {},
+                                    React.createElement('label', { className: "block text-sm font-medium mb-1 text-gray-700 flex items-center gap-2" },
+                                        React.createElement(Minus, { size: 16 }),
+                                        'Break Time (minutes)'
+                                    ),
+                                    React.createElement('input', {
+                                        type: "number",
+                                        value: timeEntry.breakTime,
+                                        onChange: (e) => setTimeEntry(prev => ({ ...prev, breakTime: parseInt(e.target.value) || 0 })),
+                                        className: "w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent",
+                                        placeholder: "60"
+                                    })
+                                ),
+                                React.createElement('div', { className: "bg-gray-50 p-3 rounded-lg border border-gray-200" },
+                                    React.createElement('div', { className: "text-sm text-gray-600 font-medium" }, 'Current Time:'),
+                                    React.createElement('div', { className: "text-lg font-bold text-gray-800" }, getCurrentTimeDisplay())
+                                ),
+                                timeEntry.inTime.hour && timeEntry.outTime.hour && 
+                                React.createElement('div', { className: "bg-blue-50 p-4 rounded-lg border border-blue-200" },
+                                    React.createElement('div', { className: "text-sm text-blue-700 font-medium" }, 'Preview:'),
+                                    React.createElement('div', { className: "text-sm text-blue-600" }, `Working Hours: ${calculateWorkingHours(timeEntry.inTime, timeEntry.outTime, timeEntry.breakTime).toFixed(1)}h`),
+                                    React.createElement('div', { className: "text-sm text-blue-600" }, `Salary: ${formatCurrency(calculateWorkingHours(timeEntry.inTime, timeEntry.outTime, timeEntry.breakTime) * salaryPerHour)}`)
+                                ),
+                                React.createElement('button', {
+                                    onClick: handleTimeSubmit,
+                                    className: "w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 font-medium"
+                                },
+                                    React.createElement(Save, { size: 20 }),
+                                    'Save Work Time'
+                                )
+                            )
+                        ),
+                        // Summary Cards
+                        React.createElement('div', { className: "space-y-4" },
+                            React.createElement('div', { className: "bg-blue-50 p-4 rounded-lg border border-blue-200" },
+                                React.createElement('div', { className: "text-blue-600 font-semibold" }, 'Total Hours'),
+                                React.createElement('div', { className: "text-2xl font-bold text-blue-800" }, `${getTotalHours().toFixed(1)}h`)
+                            ),
+                            React.createElement('div', { className: "bg-green-50 p-4 rounded-lg border border-green-200" },
+                                React.createElement('div', { className: "text-green-600 font-semibold" }, 'Total Salary'),
+                                React.createElement('div', { className: "text-2xl font-bold text-green-800" }, formatCurrency(getTotalSalary()))
+                            ),
+                            React.createElement('div', { className: "bg-purple-50 p-4 rounded-lg border border-purple-200" },
+                                React.createElement('div', { className: "text-purple-600 font-semibold" }, 'Working Days'),
+                                React.createElement('div', { className: "text-2xl font-bold text-purple-800" }, getWorkingDays())
+                            ),
+                            React.createElement('div', { className: "bg-orange-50 p-4 rounded-lg border border-orange-200" },
+                                React.createElement('div', { className: "text-orange-600 font-semibold" }, 'Leave Days'),
+                                React.createElement('div', { className: "text-2xl font-bold text-orange-800" }, getLeaveDays())
+                            )
+                        )
+                    ),
+                    // Calendar Section - simplified for space
+                    React.createElement('div', { className: "lg:col-span-2" },
+                        React.createElement('div', { className: "bg-white rounded-lg shadow-lg p-6" },
+                            React.createElement('div', { className: "flex items-center justify-between mb-6" },
+                                React.createElement('h1', { className: "text-2xl font-bold text-gray-800 flex items-center gap-2" },
+                                    React.createElement(Calendar, { className: "text-blue-600" }),
+                                    'Work Calendar'
+                                ),
+                                React.createElement('button', {
+                                    onClick: () => setShowSalarySettings(true),
+                                    className: "bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
+                                },
+                                    React.createElement(DollarSign, { size: 20 }),
+                                    'Salary Settings'
+                                )
+                            ),
+                            React.createElement('div', { className: "text-center text-gray-600" },
+                                'Calendar view will be displayed here'
+                            )
+                        )
+                    )
+                ),
+                // Salary Settings Modal
+                showSalarySettings && React.createElement('div', { className: "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" },
+                    React.createElement('div', { className: "bg-white p-6 rounded-lg max-w-md w-full m-4" },
+                        React.createElement('h3', { className: "text-lg font-semibold mb-4" }, 'Salary Settings'),
+                        React.createElement('div', { className: "space-y-4" },
+                            React.createElement('div', {},
+                                React.createElement('label', { className: "block text-sm font-medium mb-1" }, 'Salary Per Hour'),
+                                React.createElement('div', { className: "flex items-center gap-2" },
+                                    React.createElement('span', { className: "text-lg font-bold" }, '₹'),
+                                    React.createElement('input', {
+                                        type: "number",
+                                        step: "0.01",
+                                        value: salaryPerHour,
+                                        onChange: (e) => setSalaryPerHour(parseFloat(e.target.value) || 0),
+                                        className: "flex-1 p-2 border rounded-lg",
+                                        placeholder: "Enter hourly rate"
+                                    })
+                                )
+                            ),
+                            React.createElement('div', { className: "bg-gray-50 p-3 rounded-lg" },
+                                React.createElement('div', { className: "text-sm text-gray-600" }, `Current total salary: ${formatCurrency(getTotalSalary())}`),
+                                React.createElement('div', { className: "text-sm text-gray-600" }, `Based on ${getTotalHours().toFixed(1)} hours worked`)
+                            )
+                        ),
+                        React.createElement('div', { className: "flex gap-2 mt-6" },
+                            React.createElement('button', {
+                                onClick: () => setShowSalarySettings(false),
+                                className: "flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
+                            }, 'Save'),
+                            React.createElement('button', {
+                                onClick: () => setShowSalarySettings(false),
+                                className: "flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400"
+                            }, 'Cancel')
+                        )
+                    )
+                )
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(WorkTimeCalculator));
+    </script>
+</body>
+</html>
