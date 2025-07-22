@@ -949,13 +949,19 @@ const WorkTimeCalculator = () => {
         </div>
         <div className="flex items-center gap-2">
           {user?.user_metadata?.role === 'admin' && (
-            <button
-              onClick={() => setShowAdminPanel(!showAdminPanel)}
-              className="text-purple-600 hover:text-purple-800 font-medium transition-colors duration-200 flex items-center gap-2"
-            >
-              <Shield size={18} />
-              <span className="hidden sm:inline">Admin</span>
-            </button>
+           <button
+  onClick={async () => {
+    await handleSignOut();         // 👈 Sign out the current user
+    setShowAdminPanel(true);       // 👈 Show the Admin Panel
+    setShowRegister(true);         // 👈 Show the Register form
+    setShowLogin(false);           // 👈 Hide the Login form
+  }}
+  className="text-purple-600 hover:text-purple-800 font-medium transition-colors duration-200 flex items-center gap-2"
+>
+  <Shield size={18} />
+  <span className="hidden sm:inline">Admin</span>
+</button>
+
           )}
           <button
             onClick={returnToIndex}
