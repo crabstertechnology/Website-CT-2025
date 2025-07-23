@@ -136,7 +136,7 @@ const WorkTimeCalculator = () => {
   // Auth State
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showLogin, setShowLogin] = useState(true);
   const [showRegister, setShowRegister] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(true);
@@ -169,7 +169,7 @@ const WorkTimeCalculator = () => {
   const [workRecords, setWorkRecords] = useState({});
   const [leaveRecords, setLeaveRecords] = useState({});
   const [salaryPerHour, setSalaryPerHour] = useState(500);
-  const [showSalarySettings, setShowSalarySettings] = useState(false);
+  const [showSalarySettings, setShowSalarySettings] = useState(true);
   
   // Time entry form state
   const [timeEntry, setTimeEntry] = useState({
