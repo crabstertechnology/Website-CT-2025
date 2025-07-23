@@ -1,16 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, DollarSign, Coffee, Trash2, Save, X, LogIn, LogOut, Minus, User, Settings, BarChart3, Download, ArrowLeft, Eye, EyeOff, UserPlus, Shield } from 'lucide-react';
-
-// Supabase Configuration (Replace with your actual Supabase URL and anon key)
-const SUPABASE_URL = 'https://wzitkaoblwfyuvvbgkgh.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6aXRrYW9ibHdmeXV2dmJna2doIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3Mzk5MDksImV4cCI6MjA2ODMxNTkwOX0.zglrcOs0TMANcfsl-T0UaVY21akbIxSGdqobQqEIl44';
-
-// Demo mode for testing without Supabase
-const DEMO_MODE = true; // Set to false when you have Supabase configured
-
+import { createClient } from '@supabase/supabase-js';
 // Import Supabase (uncomment when ready for production)
-// import { createClient } from '@supabase/supabase-js';
+// // Supabase Configuration (Replace with your actual Supabase URL and anon key)
+const SUPABASE_URL = 'https://ajuimiedhxrmtorlflhy.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqdWltaWVkaHhybXRvcmxmbGh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxODU0MTQsImV4cCI6MjA2ODc2MTQxNH0.6rhOdi7pvSEOBNc9ImrOs9-jNXaxYt57s3oB3VhIu1Y';
 
+// Demo mode for testing without Supabasee
+const DEMO_MODE = true; // Set to false when you have Supabase configured
 // Supabase Client
 const createSupabaseClient = () => {
   if (DEMO_MODE) {
@@ -126,14 +123,11 @@ const createSupabaseClient = () => {
   
   // Production Supabase client
   // Uncomment these lines when you have your Supabase credentials:
-  /*
-  if (SUPABASE_URL.includes('YOUR_SUPABASE') || SUPABASE_ANON_KEY.includes('YOUR_SUPABASE')) {
+  
+  if (SUPABASE_URL.includes('https://wzitkaoblwfyuvvbgkgh.supabase.co') || SUPABASE_ANON_KEY.includes('sb_secret_U5sXBN5bjRhtlAwd-w8fzw_J04qgwLV')) {
     throw new Error('Please configure your Supabase credentials');
   }
   return createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  */
-  
-  return null;
 };
 
 const supabase = createSupabaseClient();
