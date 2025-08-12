@@ -854,8 +854,8 @@ const WorkTimeCalculator = () => {
                   <button
                     type="button"
                     onClick={() => {
-                      setShowAdminPanel(true);
-                      setShowRegister(true);
+                      setShowAdminPanel(false);
+                      setShowRegister(false);
                       setShowLogin(false);
                     }}
                     className="flex-1 bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 font-medium transition-colors duration-200 flex items-center justify-center gap-2"
