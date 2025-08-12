@@ -2,127 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, DollarSign, Coffee, Trash2, Save, X, LogIn, LogOut, Minus, User, Settings, BarChart3, Download, ArrowLeft, Eye, EyeOff, UserPlus, Shield } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 
-// 🔧 PRODUCTION CONFIGURATION
-// Replace these with your actual Supabase credentials
-// Better approach:
+// Supabase configuration from environment variables
 const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
-// Ensure these are set in your .env file
-// Set to false for production mode
-const DEMO_MODE = false;
 
+// Validate Supabase configuration
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error('Please configure REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_ANON_KEY in your .env file');
+}
 
-// Supabase Client
-const createSupabaseClient = () => {
-  if (DEMO_MODE) {
-    // Mock Supabase client for demo (same as before)
-    return {
-      auth: {
-        signInWithPassword: async ({ email, password }) => {
-          const demoUsers = {
-            'admin@company.com': { password: 'admin123', role: 'admin', name: 'Admin User', employee_id: 'EMP001' },
-            'john@company.com': { password: 'john123', role: 'employee', name: 'John Doe', employee_id: 'EMP002' },
-            'jane@company.com': { password: 'jane123', role: 'employee', name: 'Jane Smith', employee_id: 'EMP003' }
-          };
-          
-          const user = demoUsers[email];
-          if (user && user.password === password) {
-            return {
-              data: {
-                user: {
-                  id: Math.random().toString(36).substr(2, 9),
-                  email: email,
-                  user_metadata: {
-                    full_name: user.name,
-                    role: user.role,
-                    employee_id: user.employee_id
-                  }
-                }
-              },
-              error: null
-            };
-          }
-          return { data: null, error: { message: 'Invalid email or password' } };
-        },
-        signUp: async ({ email, password, options }) => {
-          return {
-            data: {
-              user: {
-                id: Math.random().toString(36).substr(2, 9),
-                email: email,
-                user_metadata: options.data
-              }
-            },
-            error: null
-          };
-        },
-        signOut: async () => ({ error: null }),
-        getUser: async () => {
-          const savedUser = sessionStorage.getItem('workq_current_user');
-          return savedUser ? { data: { user: JSON.parse(savedUser) }, error: null } : { data: { user: null }, error: null };
-        },
-        onAuthStateChange: (callback) => {
-          return { data: { subscription: { unsubscribe: () => {} } } };
-        }
-      },
-      from: (table) => ({
-        select: (columns = '*') => ({
-          eq: (column, value) => ({
-            single: async () => ({ 
-              data: sessionStorage.getItem(`demo_${table}_${value}`) ? 
-                JSON.parse(sessionStorage.getItem(`demo_${table}_${value}`)) : null, 
-              error: null 
-            })
-          })
-        }),
-        insert: async (data) => {
-          if (Array.isArray(data)) {
-            data.forEach(item => {
-              sessionStorage.setItem(`demo_${table}_${item.user_id || item.id}`, JSON.stringify(item));
-            });
-          } else {
-            sessionStorage.setItem(`demo_${table}_${data.user_id || data.id}`, JSON.stringify(data));
-          }
-          return { data, error: null };
-        },
-        upsert: async (data) => {
-          const key = `demo_${table}_${data.user_id || data.id}`;
-          sessionStorage.setItem(key, JSON.stringify(data));
-          return { data, error: null };
-        },
-        update: (updateData) => ({
-          eq: async (column, value) => {
-            const key = `demo_${table}_${value}`;
-            const existing = sessionStorage.getItem(key);
-            if (existing) {
-              const updated = { ...JSON.parse(existing), ...updateData };
-              sessionStorage.setItem(key, JSON.stringify(updated));
-              return { data: updated, error: null };
-            }
-            return { data: null, error: null };
-          }
-        }),
-        delete: () => ({
-          eq: async (column, value) => {
-            sessionStorage.removeItem(`demo_${table}_${value}`);
-            return { data: null, error: null };
-          }
-        })
-      })
-    };
-  }
-  
-  // 🚀 PRODUCTION SUPABASE CLIENT
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || 
-      SUPABASE_URL.includes('your-project-id') || 
-      SUPABASE_ANON_KEY.includes('your-anon-key')) {
-    throw new Error('Please configure your Supabase credentials in the code');
-  }
-  
-  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-};
-
-const supabase = createSupabaseClient();
+// Create Supabase client
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const WorkTimeCalculator = () => {
   // Auth State
@@ -182,9 +72,36 @@ const WorkTimeCalculator = () => {
     dateStr: ''
   });
 
-  // Initialize app
+  // Initialize app and set up auth listener
   useEffect(() => {
     checkUserSession();
+    
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        setUser(session.user);
+        setIsAuthenticated(true);
+        setShowLogin(false);
+        await loadUserData(session.user.id);
+        setIsLoading(false);
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setIsAuthenticated(false);
+        setWorkRecords({});
+        setLeaveRecords({});
+        setSalaryPerHour(500);
+        setCurrentView('timetracker');
+        setShowLogin(true);
+        setShowAdminPanel(false);
+        setShowRegister(false);
+        setIsLoading(false);
+      } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+        // Session refreshed, reload user data
+        await loadUserData(session.user.id);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   // Auto-fill current date
@@ -196,7 +113,7 @@ const WorkTimeCalculator = () => {
 
   // Save data when records change (only if authenticated)
   useEffect(() => {
-    if (user && isAuthenticated && !DEMO_MODE) {
+    if (user && isAuthenticated) {
       saveUserData();
     }
   }, [workRecords, leaveRecords, salaryPerHour, user, isAuthenticated]);
@@ -238,12 +155,6 @@ const WorkTimeCalculator = () => {
         setUser(data.user);
         setIsAuthenticated(true);
         setShowLogin(false);
-        
-        // Save session in demo mode only
-        if (DEMO_MODE) {
-          sessionStorage.setItem('workq_current_user', JSON.stringify(data.user));
-        }
-        
         await loadUserData(data.user.id);
         setLoginForm({ email: '', password: '', showPassword: false, isLoading: false, error: '' });
       }
@@ -281,11 +192,7 @@ const WorkTimeCalculator = () => {
         return;
       }
       
-      if (DEMO_MODE) {
-        alert('Employee registered successfully!');
-      } else {
-        alert('Registration successful! Please check your email to confirm your account.');
-      }
+      alert('Registration successful! Please check your email to confirm your account.');
       
       setRegisterForm({
         email: '',
@@ -311,26 +218,14 @@ const WorkTimeCalculator = () => {
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut();
-      if (DEMO_MODE) {
-        sessionStorage.removeItem('workq_current_user');
-      }
-      setUser(null);
-      setIsAuthenticated(false);
-      setWorkRecords({});
-      setLeaveRecords({});
-      setSalaryPerHour(500);
-      setCurrentView('timetracker');
-      setShowLogin(true);
-      setShowAdminPanel(false);
-      setShowRegister(false);
     } catch (error) {
       console.error('Error signing out:', error);
     }
   };
 
-  // 🗄️ PRODUCTION DATA MANAGEMENT
+  // Save user data to Supabase
   const saveUserData = async () => {
-    if (!user || !isAuthenticated || DEMO_MODE) return;
+    if (!user || !isAuthenticated) return;
     
     try {
       const userData = {
@@ -354,35 +249,24 @@ const WorkTimeCalculator = () => {
     }
   };
 
+  // Load user data from Supabase
   const loadUserData = async (userId) => {
     try {
-      if (DEMO_MODE) {
-        // Demo mode logic (same as before)
-        const userData = sessionStorage.getItem(`workq_data_${userId}`);
-        if (userData) {
-          const parsed = JSON.parse(userData);
-          setWorkRecords(parsed.work_records || {});
-          setLeaveRecords(parsed.leave_records || {});
-          setSalaryPerHour(parsed.salary_per_hour || 500);
-        }
-      } else {
-        // 🚀 PRODUCTION: Load from Supabase
-        const { data, error } = await supabase
-          .from('user_data')
-          .select('*')
-          .eq('user_id', userId)
-          .single();
-        
-        if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
-          console.error('Error loading data:', error);
-          return;
-        }
-        
-        if (data) {
-          setWorkRecords(data.work_records || {});
-          setLeaveRecords(data.leave_records || {});
-          setSalaryPerHour(data.salary_per_hour || 500);
-        }
+      const { data, error } = await supabase
+        .from('user_data')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+        console.error('Error loading data:', error);
+        return;
+      }
+      
+      if (data) {
+        setWorkRecords(data.work_records || {});
+        setLeaveRecords(data.leave_records || {});
+        setSalaryPerHour(data.salary_per_hour || 500);
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -394,7 +278,7 @@ const WorkTimeCalculator = () => {
     window.location.href = '../index.html';
   };
 
-  // Time utility functions (same as before)
+  // Time utility functions
   const timeObjectTo24Hour = (timeObj) => {
     if (!timeObj.hour || !timeObj.minute) return '';
     let hour = parseInt(timeObj.hour);
@@ -623,9 +507,7 @@ const WorkTimeCalculator = () => {
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <h2 className="text-xl font-semibold text-gray-700">Loading WorkQ...</h2>
-          <p className="text-gray-500 mt-2">
-            {DEMO_MODE ? 'Demo Mode' : 'Production Mode'} - Initializing Application
-          </p>
+          <p className="text-gray-500 mt-2">Production Mode - Initializing Application</p>
         </div>
       </div>
     );
@@ -652,9 +534,7 @@ const WorkTimeCalculator = () => {
                 WorkQ
               </h1>
               <p className="text-gray-600">Employee Time Tracking System</p>
-              <p className="text-sm text-gray-500 mt-2">
-                {DEMO_MODE ? '🔧 Demo Mode' : '🚀 Production Mode'} - Secure Employee Dashboard
-              </p>
+              <p className="text-sm text-gray-500 mt-2">🚀 Production Mode - Secure Employee Dashboard</p>
             </div>
 
             {/* Admin Registration Panel (for first user or admin access) */}
@@ -868,34 +748,14 @@ const WorkTimeCalculator = () => {
               </div>
             )}
 
-            {/* Demo Credentials (only show in demo mode) */}
-            {DEMO_MODE && showLogin && !showRegister && !showAdminPanel && (
-              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <h3 className="font-semibold text-blue-800 mb-2">Demo Credentials</h3>
-                <div className="text-sm text-blue-700 space-y-1">
-                  <p><strong>Admin:</strong> admin@company.com / admin123</p>
-                  <p><strong>Employee:</strong> john@company.com / john123</p>
-                  <p><strong>Employee:</strong> jane@company.com / jane123</p>
-                </div>
-              </div>
-            )}
-
             {/* System Info */}
             <div className="mt-6 text-xs text-gray-500 text-center">
-              <p>🔒 {DEMO_MODE ? 'Demo Mode - Sample Data' : 'Production Mode - Supabase Database'}</p>
+              <p>🔒 Production Mode - Supabase Database</p>
               <p className="mt-1">Your data is stored safely and privately</p>
-              {DEMO_MODE && (
-                <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-700">
-                  <p className="font-medium">⚠️ Demo Mode Active</p>
-                  <p className="text-xs">Switch to production mode for real database storage</p>
-                </div>
-              )}
-              {!DEMO_MODE && (
-                <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded text-green-700">
-                  <p className="font-medium">✅ Production Mode Active</p>
-                  <p className="text-xs">Connected to Supabase Database</p>
-                </div>
-              )}
+              <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded text-green-700">
+                <p className="font-medium">✅ Production Mode Active</p>
+                <p className="text-xs">Connected to Supabase Database</p>
+              </div>
             </div>
           </div>
         </div>
@@ -1055,12 +915,10 @@ const WorkTimeCalculator = () => {
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Dashboard</h1>
           <p className="text-gray-600">Your personal work analytics</p>
-          {!DEMO_MODE && (
-            <div className="inline-flex items-center gap-2 mt-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              Connected to Supabase Database
-            </div>
-          )}
+          <div className="inline-flex items-center gap-2 mt-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            Connected to Supabase Database
+          </div>
         </div>
         
         {/* Quick Stats */}
@@ -1186,18 +1044,15 @@ const WorkTimeCalculator = () => {
       {/* Database Status */}
       <div className="bg-white rounded-xl shadow-lg p-6">
         <h3 className="text-xl font-bold text-gray-800 mb-4">Database Status</h3>
-        <div className={`p-4 rounded-lg ${DEMO_MODE ? 'bg-yellow-50 border border-yellow-200' : 'bg-green-50 border border-green-200'}`}>
+        <div className="p-4 rounded-lg bg-green-50 border border-green-200">
           <div className="flex items-center gap-3">
-            <div className={`w-3 h-3 rounded-full ${DEMO_MODE ? 'bg-yellow-500' : 'bg-green-500'}`}></div>
+            <div className="w-3 h-3 rounded-full bg-green-500"></div>
             <div>
-              <h4 className={`font-semibold ${DEMO_MODE ? 'text-yellow-800' : 'text-green-800'}`}>
-                {DEMO_MODE ? '🔧 Demo Mode Active' : '🚀 Production Mode - Supabase Connected'}
+              <h4 className="font-semibold text-green-800">
+                🚀 Production Mode - Supabase Connected
               </h4>
-              <p className={`text-sm ${DEMO_MODE ? 'text-yellow-600' : 'text-green-600'}`}>
-                {DEMO_MODE 
-                  ? 'Data stored in browser session. Switch to production for real database storage.' 
-                  : 'Your data is securely stored in Supabase database and automatically synced.'
-                }
+              <p className="text-sm text-green-600">
+                Your data is securely stored in Supabase database and automatically synced.
               </p>
             </div>
           </div>
@@ -1277,29 +1132,27 @@ const WorkTimeCalculator = () => {
         <h3 className="text-xl font-bold text-gray-800 mb-4">About WorkQ</h3>
         <div className="text-sm text-gray-600 space-y-2">
           <p>Version: 3.0.0 (Production Ready with Supabase Integration)</p>
-          <p>Mode: {DEMO_MODE ? 'Demo Mode (Browser Storage)' : 'Production Mode (Supabase Database)'}</p>
-          <p>Authentication: {DEMO_MODE ? 'Mock Authentication' : 'Supabase Auth'}</p>
-          <p>Database: {DEMO_MODE ? 'Session Storage' : 'Supabase PostgreSQL'}</p>
+          <p>Mode: Production Mode (Supabase Database)</p>
+          <p>Authentication: Supabase Auth</p>
+          <p>Database: Supabase PostgreSQL</p>
           <p>Features: Time tracking, salary calculation, secure login, data export, user management</p>
           <p className="text-green-600 font-medium">✓ Secure • ✓ Private • ✓ User-Specific Data • ✓ Real-time Sync</p>
-          {!DEMO_MODE && (
-            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-              <p className="font-medium text-green-800">🚀 Production Benefits:</p>
-              <ul className="text-green-700 text-xs mt-1 space-y-1">
-                <li>• Real user authentication with email verification</li>
-                <li>• Secure database storage with Row Level Security</li>
-                <li>• Automatic data backup and synchronization</li>
-                <li>• Multi-device access with same login</li>
-                <li>• Admin user management capabilities</li>
-              </ul>
-            </div>
-          )}
+          <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <p className="font-medium text-green-800">🚀 Production Benefits:</p>
+            <ul className="text-green-700 text-xs mt-1 space-y-1">
+              <li>• Real user authentication with email verification</li>
+              <li>• Secure database storage with Row Level Security</li>
+              <li>• Automatic data backup and synchronization</li>
+              <li>• Multi-device access with same login</li>
+              <li>• Admin user management capabilities</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
   );
 
-  // Time Tracker View (same structure as before)
+  // Time Tracker View
   const TimeTrackerView = () => (
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
       {/* Time Entry Section */}
@@ -1308,11 +1161,9 @@ const WorkTimeCalculator = () => {
           <h2 className="text-lg sm:text-xl font-bold text-gray-800 flex items-center gap-2 mb-4">
             <Clock className="text-blue-600" size={20} />
             Time Entry
-            {!DEMO_MODE && (
-              <div className="ml-auto">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" title="Connected to database"></div>
-              </div>
-            )}
+            <div className="ml-auto">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" title="Connected to database"></div>
+            </div>
           </h2>
           
           <div className="space-y-4">
@@ -1458,11 +1309,9 @@ const WorkTimeCalculator = () => {
             <h1 className="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-2">
               <Calendar className="text-blue-600" size={24} />
               Work Calendar
-              {!DEMO_MODE && (
-                <div className="ml-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" title="Real-time sync enabled"></div>
-                </div>
-              )}
+              <div className="ml-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" title="Real-time sync enabled"></div>
+              </div>
             </h1>
           </div>
 
@@ -1611,10 +1460,8 @@ const WorkTimeCalculator = () => {
         </h1>
         <p className="text-gray-600">Employee Time Tracking System</p>
         <div className="flex items-center justify-center gap-2 mt-2">
-          <div className={`w-2 h-2 rounded-full ${DEMO_MODE ? 'bg-yellow-500' : 'bg-green-500'}`}></div>
-          <span className="text-sm text-gray-500">
-            {DEMO_MODE ? 'Demo Mode - Browser Storage' : 'Production Mode - Supabase Database'}
-          </span>
+          <div className="w-2 h-2 rounded-full bg-green-500"></div>
+          <span className="text-sm text-gray-500">Production Mode - Supabase Database</span>
         </div>
       </div>
 
