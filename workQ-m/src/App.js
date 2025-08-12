@@ -11,6 +11,7 @@ const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
 // Set to false for production mode
 const DEMO_MODE = false;
 
+
 // Supabase Client
 const createSupabaseClient = () => {
   if (DEMO_MODE) {
@@ -854,8 +855,8 @@ const WorkTimeCalculator = () => {
                   <button
                     type="button"
                     onClick={() => {
-                      setShowAdminPanel(false);
-                      setShowRegister(false);
+                      setShowAdminPanel(true);
+                      setShowRegister(true);
                       setShowLogin(false);
                     }}
                     className="flex-1 bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 font-medium transition-colors duration-200 flex items-center justify-center gap-2"
